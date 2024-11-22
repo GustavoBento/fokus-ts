@@ -42,8 +42,16 @@ const adicionarTarefa = (
   estado: EstadoAplicacao,
   tarefa: Tarefa
 ): EstadoAplicacao => {
-  
-  return { ...estado, tarefas: [...estado.tarefas, tarefa] };
+  if (estado.tarefaSelecionada && estado.editando) {
+    const tarefas = estado.tarefas.map((novaTarefa) =>
+      novaTarefa === estado.tarefaSelecionada
+        ? { ...novaTarefa, descricao: tarefa.descricao }
+        : novaTarefa
+    );
+    return { ...estado, tarefas, tarefaSelecionada: null, editando: false };
+  } else {
+    return { ...estado, tarefas: [...estado.tarefas, tarefa] };
+  }
 };
 
 const editarTarefa = (
@@ -53,18 +61,9 @@ const editarTarefa = (
   return { ...estado, editando: !estado.editando, tarefaSelecionada: tarefa };
 };
 
-const atualizarTarefa = (estado: EstadoAplicacao, tarefa: Tarefa): EstadoAplicacao => {
-  if (estado.editando && estado.tarefaSelecionada) {
-    const tarefas = estado.tarefas.map((t) => t === estado.tarefaSelecionada ? {...t, descricao: tarefa.descricao}: t)
-    return {...estado, tarefas, tarefaSelecionada: null, editando: false};
-  } else {
-    return estado;
-  }
-}
-
 const deletarTarefa = (estado: EstadoAplicacao): EstadoAplicacao => {
   if (estado.tarefaSelecionada) {
-    const tarefas = estado.tarefas.filter((t) => t != estado.tarefaSelecionada);
+    const tarefas = estado.tarefas.filter((tarefa) => tarefa != estado.tarefaSelecionada);
     return { ...estado, tarefas, tarefaSelecionada: null, editando: false };
   } else {
     return estado;
@@ -72,7 +71,7 @@ const deletarTarefa = (estado: EstadoAplicacao): EstadoAplicacao => {
 };
 
 const deletarConcluidas = (estado: EstadoAplicacao): EstadoAplicacao => {
-  const tarefas = estado.tarefas.filter((t) => !t.concluida);
+  const tarefas = estado.tarefas.filter((tarefa) => !tarefa.concluida);
   return { ...estado, tarefas, tarefaSelecionada: null, editando: false };
 };
 
@@ -126,15 +125,10 @@ const atualizarUI = () => {
   formAdicionarTarefa.onsubmit = (evento) => {
     evento.preventDefault();
     const descricao = textarea.value;
-    if (estadoInicial.editando && estadoInicial.tarefaSelecionada) {
-      estadoInicial = atualizarTarefa(estadoInicial, {descricao, concluida: false})
-    } else {
-      estadoInicial = adicionarTarefa(estadoInicial, {
-        descricao,
-        concluida: false,
-      });
-    }
-    
+    estadoInicial = adicionarTarefa(estadoInicial, {
+      descricao,
+      concluida: false,
+    });
     textarea.value = "";
     formAdicionarTarefa.classList.add("hidden");
     atualizarUI();
@@ -188,13 +182,8 @@ const atualizarUI = () => {
     if (tarefa === estadoInicial.tarefaSelecionada && !estadoInicial.tarefaSelecionada.concluida) {
       li.classList.add("app__section-task-list-item-active");
     }
-
-    li.appendChild(svgIcon);
-    li.appendChild(paragraph);
-    li.appendChild(button);
-
+    
     li.addEventListener("click", () => {
-      console.log("Tarefa: ", tarefa);
       estadoInicial = selecionarTarefa(estadoInicial, tarefa);
       atualizarUI();
     });
@@ -206,6 +195,10 @@ const atualizarUI = () => {
         atualizarUI();
       }
     };
+
+    li.appendChild(svgIcon);
+    li.appendChild(paragraph);
+    li.appendChild(button);
 
     ulLista.appendChild(li);
   });
